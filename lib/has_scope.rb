@@ -106,11 +106,10 @@ module HasScope
   #     end
   #   end
   #
-  def apply_scopes(target, hash=params)
+  def apply_scopes(target, hash=params[:filter])
     scopes_configuration.each do |scope, options|
-      next unless apply_scope_to_action?(options)
+      next unless apply_scope_to_action?(options) && !hash.nil?
       key = options[:as]
-
       if hash.key?(key)
         value, call_scope = hash[key], true
       elsif options.key?(:default)
@@ -119,7 +118,6 @@ module HasScope
           value = value.arity == 0 ? value.call : value.call(self)
         end
       end
-
       value = parse_value(options[:type], key, value)
       value = normalize_blanks(value)
 
@@ -134,6 +132,7 @@ module HasScope
 
   # Set the real value for the current scope if type check.
   def parse_value(type, key, value) #:nodoc:
+    value = value.split(',') if type == :array && value.class == String
     klasses, parser = ALLOWED_TYPES[type]
     if klasses.any? { |klass| value.is_a?(klass) }
       parser ? parser.call(value) : value
